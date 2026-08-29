@@ -1,3 +1,5 @@
+//! Initializes the AMM configuration account.
+//! The account stores the admin, ID, fee, and canonical bump.
 use pinocchio::{
     AccountView, Address, ProgramResult,
     cpi::{Seed, Signer},

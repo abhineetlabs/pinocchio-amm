@@ -1,4 +1,5 @@
-/// This instruction initializes a new LP Pair
+//! Initializes a new liquidity pool.
+//! The pool configuration also acts as the pool's token authority.
 use pinocchio::{
     AccountView, Address, ProgramResult,
     cpi::{Seed, Signer},
