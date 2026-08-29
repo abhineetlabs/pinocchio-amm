@@ -21,6 +21,9 @@ pub fn process_instruction(
         Some((InitializeAmm::DISCRIMINATOR, data)) => {
             InitializeAmm::try_from((accounts, data))?.process()
         }
+        Some((InitializePool::DISCRIMINATOR, data)) => {
+            InitializePool::try_from((accounts, data))?.process()
+        }
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
