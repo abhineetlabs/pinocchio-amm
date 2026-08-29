@@ -24,6 +24,9 @@ pub fn process_instruction(
         Some((InitializePool::DISCRIMINATOR, data)) => {
             InitializePool::try_from((accounts, data))?.process()
         }
+        Some((DepositLiquidity::DISCRIMINATOR, data)) => {
+            DepositLiquidity::try_from((accounts, data))?.process()
+        }
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
