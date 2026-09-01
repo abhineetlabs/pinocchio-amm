@@ -33,6 +33,7 @@ pub fn process_instruction(
         Some((SwapExactTokensForTokens::DISCRIMINATOR, data)) => {
             SwapExactTokensForTokens::try_from((accounts, data))?.process()
         }
+        Some((UpdateFee::DISCRIMINATOR, data)) => UpdateFee::try_from((accounts, data))?.process(),
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
