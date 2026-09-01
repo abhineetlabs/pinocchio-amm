@@ -11,11 +11,12 @@ use pinocchio_token::{
     state::Account,
 };
 
-use crate::{ID, Pool};
+use crate::{AmmConfig, ID, Pool};
 
 pub const MINIMUM_LIQUIDITY: u64 = 100;
 
 pub struct DepositLiquidityAccounts<'a> {
+    pub amm: &'a AccountView,
     pub pool_config: &'a AccountView,
     pub depositor: &'a AccountView,
     pub mint_lp: &'a mut AccountView,
@@ -35,6 +36,7 @@ impl<'a> TryFrom<&'a mut [AccountView]> for DepositLiquidityAccounts<'a> {
 
     fn try_from(accounts: &'a mut [AccountView]) -> Result<Self, Self::Error> {
         let [
+            amm,
             pool_config,
             depositor,
             mint_lp,
@@ -61,6 +63,17 @@ impl<'a> TryFrom<&'a mut [AccountView]> for DepositLiquidityAccounts<'a> {
                 pool.get_mint_lp_bump(),
             )
         };
+
+        // Validate AMM config
+        if amm.address() != &pool_amm {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
+        let amm_config = AmmConfig::load_amm(amm)?;
+
+        if amm_config.get_paused() != 0 {
+            return Err(ProgramError::InvalidArgument);
+        }
 
         // Validate LP mint
         let expected_mint_lp = Address::derive_address(
@@ -106,6 +119,7 @@ impl<'a> TryFrom<&'a mut [AccountView]> for DepositLiquidityAccounts<'a> {
         }
 
         Ok(Self {
+            amm,
             pool_config,
             depositor,
             mint_lp,

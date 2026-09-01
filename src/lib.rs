@@ -34,6 +34,7 @@ pub fn process_instruction(
             SwapExactTokensForTokens::try_from((accounts, data))?.process()
         }
         Some((UpdateFee::DISCRIMINATOR, data)) => UpdateFee::try_from((accounts, data))?.process(),
+        Some((SetPaused::DISCRIMINATOR, data)) => SetPaused::try_from((accounts, data))?.process(),
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }

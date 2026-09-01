@@ -167,6 +167,17 @@ impl<'a> SwapExactTokensForTokens<'a> {
     pub const DISCRIMINATOR: &'a u8 = &4;
 
     pub fn process(&mut self) -> ProgramResult {
+        // Load AMM config
+        let fee = {
+            let amm_config = AmmConfig::load_amm(self.accounts.amm)?;
+
+            if amm_config.get_paused() != 0 {
+                return Err(ProgramError::InvalidArgument);
+            }
+
+            amm_config.get_fee()
+        };
+
         // Initialize trader ATAs
         CreateIdempotent {
             funding_account: self.accounts.payer,
@@ -211,7 +222,6 @@ impl<'a> SwapExactTokensForTokens<'a> {
         };
 
         // Apply trading fee
-        let fee = AmmConfig::load_amm(self.accounts.amm)?.get_fee();
         let fee_amount = ((input as u128) * (fee as u128) / 10_000) as u64;
         let taxed_input = input - fee_amount;
 

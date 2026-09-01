@@ -80,6 +80,10 @@ impl<'a> TryFrom<&'a mut [AccountView]> for InitializePoolAccounts<'a> {
             return Err(ProgramError::InvalidSeeds);
         }
 
+        if amm_config.get_paused() != 0 {
+            return Err(ProgramError::InvalidArgument);
+        }
+
         // Validate mints
         let mint_a_data = Mint::from_account_view(mint_a)?;
         let mint_b_data = Mint::from_account_view(mint_b)?;
