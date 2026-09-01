@@ -8,7 +8,7 @@ use pinocchio::{
 use pinocchio_associated_token_account::instructions::CreateIdempotent;
 use pinocchio_token::{
     instructions::{MintTo, Transfer},
-    state::Account,
+    state::{Account, Mint},
 };
 
 use crate::{AmmConfig, ID, Pool};
@@ -188,18 +188,26 @@ impl<'a> DepositLiquidity<'a> {
     pub const DISCRIMINATOR: &'a u8 = &2;
 
     pub fn process(&mut self) -> ProgramResult {
-        // Load token balances
-        let (depositor_balance_a, depositor_balance_b, pool_balance_a, pool_balance_b) = {
+        // Load token balances and LP supply
+        let (
+            depositor_balance_a,
+            depositor_balance_b,
+            pool_balance_a,
+            pool_balance_b,
+            mint_lp_supply,
+        ) = {
             let depositor_ata_a = Account::from_account_view(self.accounts.depositor_ata_a)?;
             let depositor_ata_b = Account::from_account_view(self.accounts.depositor_ata_b)?;
             let pool_ata_a = Account::from_account_view(self.accounts.pool_ata_a)?;
             let pool_ata_b = Account::from_account_view(self.accounts.pool_ata_b)?;
+            let mint_lp = Mint::from_account_view(self.accounts.mint_lp)?;
 
             (
                 depositor_ata_a.amount(),
                 depositor_ata_b.amount(),
                 pool_ata_a.amount(),
                 pool_ata_b.amount(),
+                mint_lp.supply(),
             )
         };
 
@@ -224,14 +232,26 @@ impl<'a> DepositLiquidity<'a> {
         }
 
         // Calculate LP tokens
-        let mut liquidity = ((amount_a as u128) * (amount_b as u128)).isqrt() as u64;
+        let liquidity = if pool_creation {
+            let initial_liquidity =
+                u64::try_from(((amount_a as u128) * (amount_b as u128)).isqrt())
+                    .map_err(|_| ProgramError::ArithmeticOverflow)?;
 
-        // Lock minimum liquidity on the first deposit
-        if pool_creation {
-            liquidity = liquidity
+            initial_liquidity
                 .checked_sub(MINIMUM_LIQUIDITY)
-                .ok_or(ProgramError::InvalidArgument)?;
-        }
+                .ok_or(ProgramError::InvalidArgument)?
+        } else {
+            let total_liquidity = mint_lp_supply as u128 + MINIMUM_LIQUIDITY as u128;
+            let liquidity_a = ((amount_a as u128) * total_liquidity)
+                .checked_div(pool_balance_a as u128)
+                .ok_or(ProgramError::ArithmeticOverflow)?;
+            let liquidity_b = ((amount_b as u128) * total_liquidity)
+                .checked_div(pool_balance_b as u128)
+                .ok_or(ProgramError::ArithmeticOverflow)?;
+
+            u64::try_from(liquidity_a.min(liquidity_b))
+                .map_err(|_| ProgramError::ArithmeticOverflow)?
+        };
 
         // Initialize depositor LP ATA
         CreateIdempotent {
