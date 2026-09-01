@@ -1,3 +1,4 @@
+#![no_std]
 use pinocchio::{
     AccountView, Address, ProgramResult, entrypoint, error::ProgramError, nostd_panic_handler,
 };
