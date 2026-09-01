@@ -35,6 +35,9 @@ pub fn process_instruction(
         }
         Some((UpdateFee::DISCRIMINATOR, data)) => UpdateFee::try_from((accounts, data))?.process(),
         Some((SetPaused::DISCRIMINATOR, data)) => SetPaused::try_from((accounts, data))?.process(),
+        Some((TransferAdmin::DISCRIMINATOR, data)) => {
+            TransferAdmin::try_from((accounts, data))?.process()
+        }
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
