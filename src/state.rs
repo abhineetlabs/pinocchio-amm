@@ -9,12 +9,16 @@ use crate::ID;
 // Config for AMM
 #[repr(C, packed)]
 pub struct AmmConfig {
-    // Admin (functionality not currently implemented)
+    // Creator used for PDA derivation
+    creator: Address,
+    // Admin authority
     admin: Address,
     // Random 4 byte value
     id: u32,
     // Fee in basis points
     fee: u16,
+    // Paused state
+    paused: u8,
     bump: [u8; 1],
 }
 
@@ -55,6 +59,11 @@ impl AmmConfig {
 
     // Getter functions for safe field access
     #[inline(always)]
+    pub fn get_creator(&self) -> &Address {
+        &self.creator
+    }
+
+    #[inline(always)]
     pub fn get_admin(&self) -> &Address {
         &self.admin
     }
@@ -67,6 +76,11 @@ impl AmmConfig {
     #[inline(always)]
     pub fn get_fee(&self) -> u16 {
         self.fee
+    }
+
+    #[inline(always)]
+    pub fn get_paused(&self) -> u8 {
+        self.paused
     }
 
     #[inline(always)]
@@ -113,15 +127,30 @@ impl AmmConfig {
     }
 
     #[inline(always)]
+    pub fn set_paused(&mut self, paused: u8) {
+        self.paused = paused;
+    }
+
+    #[inline(always)]
     pub fn set_bump(&mut self, bump: [u8; 1]) {
         self.bump = bump;
     }
 
     #[inline(always)]
-    pub fn set_all(&mut self, admin: Address, id: u32, fee: u16, bump: [u8; 1]) {
+    pub fn set_all(
+        &mut self,
+        creator: Address,
+        admin: Address,
+        id: u32,
+        fee: u16,
+        paused: u8,
+        bump: [u8; 1],
+    ) {
+        self.creator = creator;
         self.admin = admin;
         self.id = id;
         self.fee = fee;
+        self.paused = paused;
         self.bump = bump
     }
 }

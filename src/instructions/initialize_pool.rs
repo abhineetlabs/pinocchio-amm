@@ -71,7 +71,7 @@ impl<'a> TryFrom<&'a mut [AccountView]> for InitializePoolAccounts<'a> {
         let amm_config = AmmConfig::load_amm(amm)?;
         let amm_id = amm_config.get_id().to_le_bytes();
         let expected_amm = Address::derive_address(
-            &[b"amm", amm_config.get_admin().as_ref(), &amm_id],
+            &[b"amm", amm_config.get_creator().as_ref(), &amm_id],
             Some(amm_config.get_bump()[0]),
             &ID,
         );
