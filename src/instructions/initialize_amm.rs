@@ -5,7 +5,7 @@ use pinocchio::{
     cpi::{Seed, Signer},
     error::ProgramError,
 };
-use pinocchio_system::instructions::CreateAccount;
+use pinocchio_system::instructions::CreateAccountAllowPrefund;
 
 use crate::{AmmConfig, ID};
 
@@ -35,6 +35,10 @@ impl<'a> TryFrom<&'a mut [AccountView]> for InitializeAmmAccounts<'a> {
 
         if !admin.is_signer() {
             return Err(ProgramError::MissingRequiredSignature);
+        }
+
+        if !payer.is_writable() || !amm.is_writable() {
+            return Err(ProgramError::InvalidAccountData);
         }
 
         Ok(Self {
@@ -128,7 +132,7 @@ impl<'a> InitializeAmm<'a> {
 
         let signer = Signer::from(seeds);
 
-        CreateAccount::with_minimum_balance(
+        CreateAccountAllowPrefund::with_minimum_balance(
             self.accounts.payer,
             self.accounts.amm,
             AmmConfig::LEN as u64,

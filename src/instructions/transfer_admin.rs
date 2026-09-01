@@ -22,6 +22,10 @@ impl<'a> TryFrom<&'a mut [AccountView]> for TransferAdminAccounts<'a> {
             return Err(ProgramError::MissingRequiredSignature);
         }
 
+        if !amm.is_writable() {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
         {
             let amm_config = AmmConfig::load_amm(amm)?;
 

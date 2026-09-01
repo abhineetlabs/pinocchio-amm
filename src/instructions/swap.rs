@@ -8,7 +8,7 @@ use pinocchio::{
 use pinocchio_associated_token_account::instructions::CreateIdempotent;
 use pinocchio_token::{instructions::Transfer, state::Account};
 
-use crate::{AmmConfig, Pool};
+use crate::{AmmConfig, ID, Pool};
 
 pub struct SwapExactTokensForTokensAccounts<'a> {
     pub amm: &'a AccountView,
@@ -49,10 +49,53 @@ impl<'a> TryFrom<&'a mut [AccountView]> for SwapExactTokensForTokensAccounts<'a>
             return Err(ProgramError::NotEnoughAccountKeys);
         };
 
-        let (pool_amm, pool_mint_a, pool_mint_b) = {
+        if !trader.is_signer() || !payer.is_signer() {
+            return Err(ProgramError::MissingRequiredSignature);
+        }
+
+        if !pool_ata_a.is_writable()
+            || !pool_ata_b.is_writable()
+            || !trader_ata_a.is_writable()
+            || !trader_ata_b.is_writable()
+            || !payer.is_writable()
+        {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
+        if token_program.address() != &pinocchio_token::ID
+            || associated_token_program.address() != &pinocchio_associated_token_account::ID
+            || system_program.address() != &pinocchio_system::ID
+        {
+            return Err(ProgramError::IncorrectProgramId);
+        }
+
+        let (pool_amm, pool_mint_a, pool_mint_b, pool_bump) = {
             let pool = Pool::load_pool(pool_config)?;
-            (*pool.get_amm(), *pool.get_mint_a(), *pool.get_mint_b())
+            (
+                *pool.get_amm(),
+                *pool.get_mint_a(),
+                *pool.get_mint_b(),
+                pool.get_bump(),
+            )
         };
+
+        let expected_pool_config = Address::derive_address(
+            &[
+                pool_amm.as_ref(),
+                pool_mint_a.as_ref(),
+                pool_mint_b.as_ref(),
+            ],
+            Some(pool_bump[0]),
+            &ID,
+        );
+
+        if pool_config.address() != &expected_pool_config {
+            return Err(ProgramError::InvalidSeeds);
+        }
+
+        if mint_a.address() != &pool_mint_a || mint_b.address() != &pool_mint_b {
+            return Err(ProgramError::InvalidAccountData);
+        }
 
         // Validate AMM config
         if amm.address() != &pool_amm {

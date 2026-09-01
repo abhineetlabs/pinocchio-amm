@@ -21,6 +21,10 @@ impl<'a> TryFrom<&'a mut [AccountView]> for SetPausedAccounts<'a> {
             return Err(ProgramError::MissingRequiredSignature);
         }
 
+        if !amm.is_writable() {
+            return Err(ProgramError::InvalidAccountData);
+        }
+
         {
             let amm_config = AmmConfig::load_amm(amm)?;
 
